@@ -20,7 +20,6 @@ import {
   addExpenseToGroup,
   removeExpenseFromGroup,
   Group,
-  Member,
   Expense
 } from './src/firebase/firestore';
 
@@ -164,7 +163,7 @@ export default function App() {
   const getGroupStats = () => {
     if (!activeGroup) return { totalExpenses: 0, memberCount: 0, expenseCount: 0, averageExpense: 0 };
     
-    const totalExpenses = activeGroup.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalExpenses = activeGroup.expenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
     const memberCount = activeGroup.members.length;
     const expenseCount = activeGroup.expenses.length;
     const averageExpense = expenseCount > 0 ? totalExpenses / expenseCount : 0;

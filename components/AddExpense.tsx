@@ -183,7 +183,7 @@ export function AddExpense({ members, onAddExpense }: AddExpenseProps) {
                 <label key={member.id} className="flex items-center space-x-2 cursor-pointer">
                   <Checkbox
                     checked={splitWith.includes(member.id)}
-                    onCheckedChange={(checked) => handleSplitWithChange(member.id, checked as boolean)}
+                    onCheckedChange={(checked: boolean) => handleSplitWithChange(member.id, checked)}
                   />
                   <span className="text-sm text-gray-700">{member.name}</span>
                 </label>
