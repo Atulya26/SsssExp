@@ -12,19 +12,30 @@ interface Member {
   email?: string;
 }
 
-interface Group {
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  paidBy: string;
+  category?: string;
+  splitWith: string[];
+  createdAt: string;
+}
+
+interface SidebarGroup {
   id: string;
   name: string;
   description?: string;
   members: Member[];
-  expenses: any[];
+  expenses: Expense[];
   createdAt: string;
 }
 
 interface SidebarProps {
-  groups: Group[];
-  activeGroup: Group | null;
-  onSelectGroup: (group: Group) => void;
+  groups: SidebarGroup[];
+  activeGroup: SidebarGroup | null;
+  onSelectGroup: (group: SidebarGroup) => void;
   onCreateGroup: (groupData: { name: string; description?: string }) => void;
   userId: string;
   onAddMember?: (member: { name: string; email?: string }) => void;
@@ -223,7 +234,7 @@ export function Sidebar({
               {/* Members List */}
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {activeGroup.members.map(member => (
-                  <div key={member.id} className="flex items-center justify-between p-2 bg-red-50 rounded border border-red-200">
+                  <div key={member.id} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
                     <span className="text-sm font-medium text-gray-900">{member.name}</span>
                     <Button
                       size="sm"

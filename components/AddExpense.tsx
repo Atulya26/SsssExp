@@ -119,7 +119,7 @@ export function AddExpense({ members, onAddExpense }: AddExpenseProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="amount">Amount ($)</Label>
+              <Label htmlFor="amount">Amount (₹)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -183,7 +183,7 @@ export function AddExpense({ members, onAddExpense }: AddExpenseProps) {
                 <label key={member.id} className="flex items-center space-x-2 cursor-pointer">
                   <Checkbox
                     checked={splitWith.includes(member.id)}
-                    onCheckedChange={(checked: boolean) => handleSplitWithChange(member.id, checked)}
+                    onCheckedChange={(checked) => handleSplitWithChange(member.id, checked as boolean)}
                   />
                   <span className="text-sm text-gray-700">{member.name}</span>
                 </label>

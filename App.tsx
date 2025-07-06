@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { AddExpense } from './components/AddExpense';
 import { ExpenseDirectory } from './components/ExpenseDirectory';
@@ -20,8 +20,19 @@ import {
   addExpenseToGroup,
   removeExpenseFromGroup,
   Group,
+  Member,
   Expense
 } from './src/firebase/firestore';
+
+// Local interfaces for Sidebar compatibility
+interface SidebarGroup {
+  id: string;
+  name: string;
+  description?: string;
+  members: Member[];
+  expenses: Expense[];
+  createdAt: string;
+}
 
 export default function App() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -112,6 +123,15 @@ export default function App() {
     }
   };
 
+  const handleSelectGroup = (group: SidebarGroup) => {
+    // Convert SidebarGroup to Group by adding createdBy field
+    const fullGroup: Group = {
+      ...group,
+      createdBy: userId || ''
+    };
+    setActiveGroup(fullGroup);
+  };
+
   const handleAddMember = async (member: { name: string; email?: string }) => {
     if (!activeGroup) return;
     
@@ -163,7 +183,7 @@ export default function App() {
   const getGroupStats = () => {
     if (!activeGroup) return { totalExpenses: 0, memberCount: 0, expenseCount: 0, averageExpense: 0 };
     
-    const totalExpenses = activeGroup.expenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
+    const totalExpenses = activeGroup.expenses.reduce((sum, expense) => sum + expense.amount, 0);
     const memberCount = activeGroup.members.length;
     const expenseCount = activeGroup.expenses.length;
     const averageExpense = expenseCount > 0 ? totalExpenses / expenseCount : 0;
@@ -212,7 +232,7 @@ export default function App() {
         <Sidebar 
           groups={groups}
           activeGroup={activeGroup}
-          onSelectGroup={setActiveGroup}
+          onSelectGroup={handleSelectGroup}
           onCreateGroup={handleCreateGroup}
           userId={userId || ''}
         />
@@ -234,7 +254,7 @@ export default function App() {
       <Sidebar 
         groups={groups}
         activeGroup={activeGroup}
-        onSelectGroup={setActiveGroup}
+        onSelectGroup={handleSelectGroup}
         onCreateGroup={handleCreateGroup}
         userId={userId || ''}
         onAddMember={handleAddMember}
