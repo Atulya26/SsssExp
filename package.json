@@ -44,7 +44,14 @@
     "clsx": "^2.0.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
-    "sonner": "^1.0.3"
+    "sonner": "^1.0.3",
+    "cmdk": "^1.1.1",
+    "react-day-picker": "^8.10.1",
+    "embla-carousel-react": "^8.6.0",
+    "recharts": "^2.15.2",
+    "vaul": "^1.1.2",
+    "input-otp": "^1.4.2",
+    "react-resizable-panels": "^2.1.7"
   },
   "devDependencies": {
     "@types/node": "^20.5.2",

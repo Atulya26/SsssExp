@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { ArrowRight, HandCoins } from 'lucide-react';
+import { ArrowRight, HandIcon } from 'lucide-react';
 
 interface Member {
   id: string;
@@ -123,7 +123,7 @@ export function Settlements({ members, expenses }: SettlementsProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <HandCoins className="h-5 w-5 text-indigo-600 mr-2" />
+          <HandIcon className="h-5 w-5 text-indigo-600 mr-2" />
           Suggested Settlements
         </CardTitle>
       </CardHeader>
@@ -131,7 +131,7 @@ export function Settlements({ members, expenses }: SettlementsProps) {
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {allSettled ? (
             <div className="text-center py-8 text-gray-500">
-              <HandCoins className="h-12 w-12 mx-auto mb-3 text-green-300" />
+              <HandIcon className="h-12 w-12 mx-auto mb-3 text-green-300" />
               <p className="text-sm text-green-600 font-medium">All settled up! 🎉</p>
               <p className="text-xs text-gray-500">Everyone's balances are even</p>
             </div>
@@ -154,7 +154,7 @@ export function Settlements({ members, expenses }: SettlementsProps) {
             ))
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <HandCoins className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <HandIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
               <p className="text-sm">No settlements needed</p>
               <p className="text-xs">Add expenses to see settlements</p>
             </div>
