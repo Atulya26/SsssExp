@@ -36,6 +36,7 @@ export interface Group {
   name: string;
   description?: string;
   members: Member[];
+  memberIds: string[]; // NEW FIELD
   expenses: Expense[];
   createdBy: string;
   createdAt: string;
@@ -48,6 +49,7 @@ export const createGroup = async (groupData: Omit<Group, 'id'>): Promise<string>
   try {
     const docRef = await addDoc(collection(db, GROUPS_COLLECTION), {
       ...groupData,
+      memberIds: groupData.members.map(m => m.id), // ensure memberIds is set
       createdAt: Timestamp.now().toDate().toISOString()
     });
     return docRef.id;
@@ -120,7 +122,7 @@ export const subscribeToUserGroups = (
 ): (() => void) => {
   const q = query(
     collection(db, GROUPS_COLLECTION),
-    where('createdBy', '==', userId),
+    where('memberIds', 'array-contains', userId),
     orderBy('createdAt', 'desc')
   );
   
@@ -160,14 +162,15 @@ export const addMemberToGroup = async (
   try {
     const group = await getGroup(groupId);
     if (!group) throw new Error('Group not found');
-    
+
     const newMember: Member = {
       id: Date.now().toString(),
       ...member
     };
-    
+
     const updatedMembers = [...group.members, newMember];
-    await updateGroup(groupId, { members: updatedMembers });
+    const updatedMemberIds = [...group.memberIds, newMember.id];
+    await updateGroup(groupId, { members: updatedMembers, memberIds: updatedMemberIds });
   } catch (error) {
     console.error('Error adding member to group:', error);
     throw error;
@@ -181,9 +184,10 @@ export const removeMemberFromGroup = async (
   try {
     const group = await getGroup(groupId);
     if (!group) throw new Error('Group not found');
-    
+
     const updatedMembers = group.members.filter(m => m.id !== memberId);
-    await updateGroup(groupId, { members: updatedMembers });
+    const updatedMemberIds = group.memberIds.filter(id => id !== memberId);
+    await updateGroup(groupId, { members: updatedMembers, memberIds: updatedMemberIds });
   } catch (error) {
     console.error('Error removing member from group:', error);
     throw error;

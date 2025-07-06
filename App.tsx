@@ -30,6 +30,7 @@ interface SidebarGroup {
   name: string;
   description?: string;
   members: Member[];
+  memberIds: string[]; // NEW FIELD
   expenses: Expense[];
   createdAt: string;
 }
@@ -110,6 +111,7 @@ export default function App() {
         name: groupData.name,
         description: groupData.description,
         members: [{ id: userId, name: 'You', email: '' }],
+        memberIds: [userId], // NEW FIELD
         expenses: [],
         createdBy: userId,
         createdAt: new Date().toISOString()

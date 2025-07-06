@@ -28,6 +28,7 @@ interface SidebarGroup {
   name: string;
   description?: string;
   members: Member[];
+  memberIds: string[]; // NEW FIELD
   expenses: Expense[];
   createdAt: string;
 }
