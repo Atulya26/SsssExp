@@ -21,7 +21,8 @@ import {
   removeExpenseFromGroup,
   Group,
   Member,
-  Expense
+  Expense,
+  getGroup
 } from './src/firebase/firestore';
 
 // Local interfaces for Sidebar compatibility
@@ -116,9 +117,11 @@ export default function App() {
         createdBy: userId,
         createdAt: new Date().toISOString()
       };
-      
-      await createGroup(newGroupData);
+      const newGroupId = await createGroup(newGroupData);
       toast.success('Group created successfully!');
+      // Fetch the new group and set as active
+      const newGroup = await getGroup(newGroupId);
+      if (newGroup) setActiveGroup(newGroup);
     } catch (error) {
       console.error('Failed to create group:', error);
       toast.error('Failed to create group. Please try again.');
