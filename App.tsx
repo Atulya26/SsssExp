@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
+import type { SidebarGroup } from './components/Sidebar';
 import { AddExpense } from './components/AddExpense';
 import { ExpenseDirectory } from './components/ExpenseDirectory';
 import { Balances } from './components/Balances';
@@ -25,12 +26,18 @@ import {
   getGroup
 } from './src/firebase/firestore';
 
-// Local interfaces for Sidebar compatibility
-interface SidebarGroup extends Omit<Group, 'members' | 'expenses'> {}
+// Helper to ensure SidebarGroup shape
+function toSidebarGroup(group: any): SidebarGroup {
+  return {
+    ...group,
+    members: group.members || [],
+    expenses: group.expenses || [],
+  };
+}
 
 export default function App() {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  const [groups, setGroups] = useState<SidebarGroup[]>([]);
+  const [activeGroup, setActiveGroup] = useState<SidebarGroup | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,20 +67,20 @@ export default function App() {
     if (!userId) return;
 
     const unsubscribe = subscribeToUserGroups(userId, (userGroups) => {
-      setGroups(userGroups);
+      setGroups(userGroups.map(toSidebarGroup));
       
       // Set active group if none is selected and groups exist
       if (!activeGroup && userGroups.length > 0) {
-        setActiveGroup(userGroups[0]);
+        setActiveGroup(toSidebarGroup(userGroups[0]));
       }
       
       // Update active group if it exists in the new groups list
       if (activeGroup) {
         const updatedActiveGroup = userGroups.find(g => g.id === activeGroup.id);
         if (updatedActiveGroup) {
-          setActiveGroup(updatedActiveGroup);
+          setActiveGroup(toSidebarGroup(updatedActiveGroup));
         } else if (userGroups.length > 0) {
-          setActiveGroup(userGroups[0]);
+          setActiveGroup(toSidebarGroup(userGroups[0]));
         } else {
           setActiveGroup(null);
         }
@@ -89,7 +96,7 @@ export default function App() {
 
     const unsubscribe = subscribeToGroup(activeGroup.id, (updatedGroup) => {
       if (updatedGroup) {
-        setActiveGroup(updatedGroup);
+        setActiveGroup(toSidebarGroup(updatedGroup));
       }
     });
 
@@ -105,20 +112,20 @@ export default function App() {
         description: groupData.description,
         memberIds: [userId],
         createdBy: userId,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
       const newGroupId = await createGroup(newGroupData);
       toast.success('Group created successfully!');
       // Fetch the new group and set as active
       const newGroup = await getGroup(newGroupId);
-      if (newGroup) setActiveGroup(newGroup);
+      if (newGroup) setActiveGroup(toSidebarGroup(newGroup));
     } catch (error) {
       console.error('Failed to create group:', error);
       toast.error('Failed to create group. Please try again.');
     }
   };
 
-  const handleSelectGroup = (group: Group) => {
+  const handleSelectGroup = (group: SidebarGroup) => {
     setActiveGroup(group);
   };
 
@@ -126,7 +133,7 @@ export default function App() {
     if (!activeGroup) return;
     
     try {
-      await addMemberToGroup(activeGroup.id, { id: Date.now().toString(), ...member });
+      await addMemberToGroup(activeGroup.id, member);
       toast.success('Member added successfully!');
     } catch (error) {
       console.error('Failed to add member:', error);

@@ -23,7 +23,7 @@ interface Expense {
   createdAt: string;
 }
 
-interface SidebarGroup {
+export interface SidebarGroup {
   id: string;
   name: string;
   description?: string;
