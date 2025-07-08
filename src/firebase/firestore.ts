@@ -35,9 +35,7 @@ export interface Group {
   id: string;
   name: string;
   description?: string;
-  members: Member[];
   memberIds: string[]; // NEW FIELD
-  expenses: Expense[];
   createdBy: string;
   createdAt: string;
 }
@@ -49,7 +47,6 @@ export const createGroup = async (groupData: Omit<Group, 'id'>): Promise<string>
   try {
     const docRef = await addDoc(collection(db, GROUPS_COLLECTION), {
       ...groupData,
-      memberIds: groupData.members.map(m => m.id), // ensure memberIds is set
       createdAt: Timestamp.now().toDate().toISOString()
     });
     return docRef.id;
@@ -85,7 +82,17 @@ export const getGroup = async (groupId: string): Promise<Group | null> => {
     const groupSnap = await getDoc(groupRef);
     
     if (groupSnap.exists()) {
-      return { id: groupSnap.id, ...groupSnap.data() } as Group;
+      const groupData = groupSnap.data() as Omit<Group, 'id' | 'members' | 'expenses'>;
+
+      // Fetch members subcollection
+      const membersSnapshot = await getDocs(collection(groupRef, 'members'));
+      const members: Member[] = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Member[];
+
+      // Fetch expenses subcollection
+      const expensesSnapshot = await getDocs(collection(groupRef, 'expenses'));
+      const expenses: Expense[] = expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Expense[];
+
+      return { id: groupSnap.id, ...groupData, members, expenses } as Group;
     }
     return null;
   } catch (error) {
@@ -126,11 +133,16 @@ export const subscribeToUserGroups = (
     orderBy('createdAt', 'desc')
   );
   
-  return onSnapshot(q, (querySnapshot) => {
+  return onSnapshot(q, async (querySnapshot) => {
     const groups: Group[] = [];
-    querySnapshot.forEach((doc) => {
-      groups.push({ id: doc.id, ...doc.data() } as Group);
-    });
+    for (const doc of querySnapshot.docs) {
+      const groupData = doc.data() as Omit<Group, 'id' | 'members' | 'expenses'>;
+      const membersSnapshot = await getDocs(collection(doc.ref, 'members'));
+      const members: Member[] = membersSnapshot.docs.map(memberDoc => ({ id: memberDoc.id, ...memberDoc.data() })) as Member[];
+      const expensesSnapshot = await getDocs(collection(doc.ref, 'expenses'));
+      const expenses: Expense[] = expensesSnapshot.docs.map(expenseDoc => ({ id: expenseDoc.id, ...expenseDoc.data() })) as Expense[];
+      groups.push({ id: doc.id, ...groupData, members, expenses } as Group);
+    }
     callback(groups);
   }, (error) => {
     console.error('Error in groups subscription:', error);
@@ -143,9 +155,19 @@ export const subscribeToGroup = (
 ): (() => void) => {
   const groupRef = doc(db, GROUPS_COLLECTION, groupId);
   
-  return onSnapshot(groupRef, (doc) => {
-    if (doc.exists()) {
-      callback({ id: doc.id, ...doc.data() } as Group);
+  return onSnapshot(groupRef, async (docSnap) => {
+    if (docSnap.exists()) {
+      const groupData = docSnap.data() as Omit<Group, 'id' | 'members' | 'expenses'>;
+
+      // Fetch members subcollection
+      const membersSnapshot = await getDocs(collection(groupRef, 'members'));
+      const members: Member[] = membersSnapshot.docs.map(memberDoc => ({ id: memberDoc.id, ...memberDoc.data() })) as Member[];
+
+      // Fetch expenses subcollection
+      const expensesSnapshot = await getDocs(collection(groupRef, 'expenses'));
+      const expenses: Expense[] = expensesSnapshot.docs.map(expenseDoc => ({ id: expenseDoc.id, ...expenseDoc.data() })) as Expense[];
+
+      callback({ id: docSnap.id, ...groupData, members, expenses } as Group);
     } else {
       callback(null);
     }
@@ -160,17 +182,8 @@ export const addMemberToGroup = async (
   member: Omit<Member, 'id'>
 ): Promise<void> => {
   try {
-    const group = await getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-
-    const newMember: Member = {
-      id: Date.now().toString(),
-      ...member
-    };
-
-    const updatedMembers = [...group.members, newMember];
-    const updatedMemberIds = [...group.memberIds, newMember.id];
-    await updateGroup(groupId, { members: updatedMembers, memberIds: updatedMemberIds });
+    const membersCollectionRef = collection(db, GROUPS_COLLECTION, groupId, 'members');
+    await addDoc(membersCollectionRef, member);
   } catch (error) {
     console.error('Error adding member to group:', error);
     throw error;
@@ -182,12 +195,8 @@ export const removeMemberFromGroup = async (
   memberId: string
 ): Promise<void> => {
   try {
-    const group = await getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-
-    const updatedMembers = group.members.filter(m => m.id !== memberId);
-    const updatedMemberIds = group.memberIds.filter(id => id !== memberId);
-    await updateGroup(groupId, { members: updatedMembers, memberIds: updatedMemberIds });
+    const memberRef = doc(db, GROUPS_COLLECTION, groupId, 'members', memberId);
+    await deleteDoc(memberRef);
   } catch (error) {
     console.error('Error removing member from group:', error);
     throw error;
@@ -200,17 +209,11 @@ export const addExpenseToGroup = async (
   expense: Omit<Expense, 'id' | 'createdAt'>
 ): Promise<void> => {
   try {
-    const group = await getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-    
-    const newExpense: Expense = {
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      ...expense
-    };
-    
-    const updatedExpenses = [...group.expenses, newExpense];
-    await updateGroup(groupId, { expenses: updatedExpenses });
+    const expensesCollectionRef = collection(db, GROUPS_COLLECTION, groupId, 'expenses');
+    await addDoc(expensesCollectionRef, {
+      ...expense,
+      createdAt: Timestamp.now().toDate().toISOString()
+    });
   } catch (error) {
     console.error('Error adding expense to group:', error);
     throw error;
@@ -223,16 +226,8 @@ export const updateExpenseInGroup = async (
   updates: Partial<Expense>
 ): Promise<void> => {
   try {
-    const group = await getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-    
-    const expenseIndex = group.expenses.findIndex(e => e.id === expenseId);
-    if (expenseIndex === -1) throw new Error('Expense not found');
-    
-    const updatedExpenses = [...group.expenses];
-    updatedExpenses[expenseIndex] = { ...updatedExpenses[expenseIndex], ...updates };
-    
-    await updateGroup(groupId, { expenses: updatedExpenses });
+    const expenseRef = doc(db, GROUPS_COLLECTION, groupId, 'expenses', expenseId);
+    await updateDoc(expenseRef, updates);
   } catch (error) {
     console.error('Error updating expense in group:', error);
     throw error;
@@ -244,11 +239,8 @@ export const removeExpenseFromGroup = async (
   expenseId: string
 ): Promise<void> => {
   try {
-    const group = await getGroup(groupId);
-    if (!group) throw new Error('Group not found');
-    
-    const updatedExpenses = group.expenses.filter(e => e.id !== expenseId);
-    await updateGroup(groupId, { expenses: updatedExpenses });
+    const expenseRef = doc(db, GROUPS_COLLECTION, groupId, 'expenses', expenseId);
+    await deleteDoc(expenseRef);
   } catch (error) {
     console.error('Error removing expense from group:', error);
     throw error;

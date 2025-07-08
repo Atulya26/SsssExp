@@ -26,15 +26,7 @@ import {
 } from './src/firebase/firestore';
 
 // Local interfaces for Sidebar compatibility
-interface SidebarGroup {
-  id: string;
-  name: string;
-  description?: string;
-  members: Member[];
-  memberIds: string[]; // NEW FIELD
-  expenses: Expense[];
-  createdAt: string;
-}
+interface SidebarGroup extends Omit<Group, 'members' | 'expenses'> {}
 
 export default function App() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -89,7 +81,7 @@ export default function App() {
     });
 
     return unsubscribe;
-  }, [userId]);
+  }, [userId, activeGroup]);
 
   // Subscribe to active group updates
   useEffect(() => {
@@ -102,7 +94,7 @@ export default function App() {
     });
 
     return unsubscribe;
-  }, [activeGroup?.id]);
+  }, [activeGroup]);
 
   const handleCreateGroup = async (groupData: { name: string; description?: string }) => {
     if (!userId) return;
@@ -111,9 +103,7 @@ export default function App() {
       const newGroupData: Omit<Group, 'id'> = {
         name: groupData.name,
         description: groupData.description,
-        members: [{ id: userId, name: 'You', email: '' }],
-        memberIds: [userId], // NEW FIELD
-        expenses: [],
+        memberIds: [userId],
         createdBy: userId,
         createdAt: new Date().toISOString()
       };
@@ -128,20 +118,15 @@ export default function App() {
     }
   };
 
-  const handleSelectGroup = (group: SidebarGroup) => {
-    // Convert SidebarGroup to Group by adding createdBy field
-    const fullGroup: Group = {
-      ...group,
-      createdBy: userId || ''
-    };
-    setActiveGroup(fullGroup);
+  const handleSelectGroup = (group: Group) => {
+    setActiveGroup(group);
   };
 
   const handleAddMember = async (member: { name: string; email?: string }) => {
     if (!activeGroup) return;
     
     try {
-      await addMemberToGroup(activeGroup.id, member);
+      await addMemberToGroup(activeGroup.id, { id: Date.now().toString(), ...member });
       toast.success('Member added successfully!');
     } catch (error) {
       console.error('Failed to add member:', error);
@@ -188,7 +173,7 @@ export default function App() {
   const getGroupStats = () => {
     if (!activeGroup) return { totalExpenses: 0, memberCount: 0, expenseCount: 0, averageExpense: 0 };
     
-    const totalExpenses = activeGroup.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalExpenses = activeGroup.expenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
     const memberCount = activeGroup.members.length;
     const expenseCount = activeGroup.expenses.length;
     const averageExpense = expenseCount > 0 ? totalExpenses / expenseCount : 0;
@@ -257,14 +242,14 @@ export default function App() {
   return (
     <div className="h-screen flex bg-gray-50">
       <Sidebar 
-        groups={groups}
-        activeGroup={activeGroup}
-        onSelectGroup={handleSelectGroup}
-        onCreateGroup={handleCreateGroup}
-        userId={userId || ''}
-        onAddMember={handleAddMember}
-        onRemoveMember={handleRemoveMember}
-      />
+          groups={groups}
+          activeGroup={activeGroup}
+          onSelectGroup={handleSelectGroup}
+          onCreateGroup={handleCreateGroup}
+          userId={userId || ''}
+          onAddMember={handleAddMember}
+          onRemoveMember={handleRemoveMember}
+        />
       
       <div className="flex-1 overflow-hidden">
         {/* Header */}
