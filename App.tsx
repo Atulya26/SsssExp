@@ -21,7 +21,6 @@ import {
   addExpenseToGroup,
   removeExpenseFromGroup,
   Group,
-  Member,
   Expense,
   getGroup
 } from './src/firebase/firestore';
